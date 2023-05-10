@@ -10,16 +10,19 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 )
 
+// EventKind is the kind of an event.
 type EventKind int64
 
 const (
-	EventKindSetMetadata     EventKind = 0
-	EventKindTextNote        EventKind = 1
-	EventKindRecommendServer EventKind = 2
+	EventKindSetMetadata     EventKind = 0 // NIP-01
+	EventKindTextNote        EventKind = 1 // NIP-01
+	EventKindRecommendServer EventKind = 2 // NIP-01
 )
 
+// Tag is a tag of an event.
 type Tag []string
 
+// Event is an Nostr event.
 type Event struct {
 	ID        string    `json:"id"`
 	PubKey    string    `json:"pubkey"`
@@ -30,21 +33,8 @@ type Event struct {
 	Sig       string    `json:"sig"`
 }
 
-func (e *Event) serialize() ([]byte, error) {
-	b, err := json.Marshal([]any{
-		0,
-		e.PubKey,
-		e.CreatedAt,
-		e.Kind,
-		e.Tags,
-		e.Content,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
+// Sing signs the event with the given private key.
+// It sets the ID, PubKey, and Sig fields.
 func (e *Event) Sign(privKey string) error {
 	s, err := hex.DecodeString(privKey)
 	if err != nil {
@@ -71,4 +61,19 @@ func (e *Event) Sign(privKey string) error {
 	}
 	e.Sig = hex.EncodeToString(sig.Serialize())
 	return nil
+}
+
+func (e *Event) serialize() ([]byte, error) {
+	b, err := json.Marshal([]any{
+		0,
+		e.PubKey,
+		e.CreatedAt,
+		e.Kind,
+		e.Tags,
+		e.Content,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }

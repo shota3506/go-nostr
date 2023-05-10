@@ -1,5 +1,6 @@
 package nostr
 
+// A Filter is a filter for subscription.
 type Filter struct {
 	IDs     []string    `json:"ids,omitempty"`
 	Kinds   []EventKind `json:"kinds,omitempty"`

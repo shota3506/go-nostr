@@ -21,6 +21,7 @@ type eventChannelGroup struct {
 	okChan chan<- *CommandResult
 }
 
+// A Client is a Nostr client that connects to a relay server.
 type Client struct {
 	conn *websocket.Conn
 
@@ -34,6 +35,8 @@ type Client struct {
 	closeErr  error
 }
 
+// NewClient creates a new Nostr client.
+// It establishes a websocket connection to the relay server.
 func NewClient(url string) (*Client, error) {
 	ctx := context.Background()
 	conn, _, err := websocket.Dial(ctx, url, nil)
@@ -68,6 +71,7 @@ func NewClient(url string) (*Client, error) {
 	return client, nil
 }
 
+// Publish submits an event to the relay server and waits for the command result.
 func (c *Client) Publish(ctx context.Context, event *Event) (*CommandResult, error) {
 	id := event.ID
 	okChan := make(chan *CommandResult, 1)
@@ -89,6 +93,7 @@ func (c *Client) Publish(ctx context.Context, event *Event) (*CommandResult, err
 	}
 }
 
+// Subscribe creates a subscription to the relay server with the given filters.
 func (c *Client) Subscribe(ctx context.Context, filters []Filter) (*Subscription, error) {
 	if len(filters) == 0 {
 		return nil, errors.New("at least one filter is required")
@@ -137,6 +142,7 @@ func (c *Client) Subscribe(ctx context.Context, filters []Filter) (*Subscription
 	}, nil
 }
 
+// Close closes the client connection.
 func (c *Client) Close() error {
 	c.closeOnce.Do(func() {
 		close(c.done)
@@ -245,22 +251,23 @@ func (c *Client) readMessage(ctx context.Context) error {
 	return fmt.Errorf("unsupported message type: %s", typ)
 }
 
-func (c *Client) handleNoticeMessage(m *NoticeMessage) {
+func (c *Client) handleNoticeMessage(m *NoticeMessage) error {
 	select {
 	case c.noticeChan <- m.Message:
 	default:
 		// drop message
 	}
+	return nil
 }
 
-func (c *Client) handleEventMessage(m *EventMessage) {
+func (c *Client) handleEventMessage(m *EventMessage) error {
 	value, ok := c.subMap.Load(m.SubscriptionID)
 	if !ok {
-		return // discard
+		return fmt.Errorf("unaddressed event message: subscription id: %s", m.SubscriptionID)
 	}
 	group, ok := value.(*subChannelGroup)
 	if !ok {
-		return // discard
+		return errors.New("invalid value in subsciption map")
 	}
 
 	select {
@@ -268,16 +275,17 @@ func (c *Client) handleEventMessage(m *EventMessage) {
 	default:
 		// drop message
 	}
+	return nil
 }
 
-func (c *Client) handleEOSEMessage(m *EOSEMessage) {
+func (c *Client) handleEOSEMessage(m *EOSEMessage) error {
 	value, ok := c.subMap.Load(m.SubscriptionID)
 	if !ok {
-		return // discard
+		return fmt.Errorf("unaddressed EOSE message: subscription id: %s", m.SubscriptionID)
 	}
 	group, ok := value.(*subChannelGroup)
 	if !ok {
-		return // discard
+		return errors.New("invalid value in subsciption map")
 	}
 
 	select {
@@ -285,16 +293,17 @@ func (c *Client) handleEOSEMessage(m *EOSEMessage) {
 	default:
 		// drop message
 	}
+	return nil
 }
 
-func (c *Client) handleOKMessage(m *OKMessage) {
+func (c *Client) handleOKMessage(m *OKMessage) error {
 	value, ok := c.eventMap.Load(m.EventID)
 	if !ok {
-		return // discard
+		return fmt.Errorf("unaddressed OK message: event id: %s", m.EventID)
 	}
 	group, ok := value.(*eventChannelGroup)
 	if !ok {
-		return // discard
+		return errors.New("invalid value in event map")
 	}
 
 	select {
@@ -305,4 +314,5 @@ func (c *Client) handleOKMessage(m *OKMessage) {
 	default:
 		// drop message
 	}
+	return nil
 }
