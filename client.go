@@ -29,7 +29,7 @@ type Client struct {
 
 	noticeChan chan string
 	subMap     sync.Map // map[string]*subChannelGroup
-	eventMap   sync.Map // map[string]*subChannelGroup
+	eventMap   sync.Map // map[string]*eventChannelGroup
 
 	closeOnce sync.Once
 	closeErr  error
