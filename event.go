@@ -14,9 +14,24 @@ import (
 type EventKind int64
 
 const (
-	EventKindSetMetadata     EventKind = 0 // NIP-01
-	EventKindTextNote        EventKind = 1 // NIP-01
-	EventKindRecommendServer EventKind = 2 // NIP-01
+	EventKindSetMetadata             EventKind = 0    // NIP-01
+	EventKindTextNote                EventKind = 1    // NIP-01
+	EventKindRecommendServer         EventKind = 2    // NIP-01
+	EventKindContacts                EventKind = 3    // NIP-02
+	EventKindEncryptedDirectMessages EventKind = 4    // NIP-04
+	EventKindEventDeletion           EventKind = 5    // NIP-09
+	EventKindReposts                 EventKind = 6    // NIP-18
+	EventKindReaction                EventKind = 7    // NIP-25
+	EventKindBadgeAward              EventKind = 8    // NIP-58
+	EventKindChannelCreation         EventKind = 40   // NIP-28
+	EventKindChannelMetadata         EventKind = 41   // NIP-28
+	EventKindChannelMessage          EventKind = 42   // NIP-28
+	EventKindChannelHideMessage      EventKind = 43   // NIP-28
+	EventKindChannelMuteUser         EventKind = 44   // NIP-28
+	EventKindFileMetadata            EventKind = 1063 // NIP-94
+	EventKindReporting               EventKind = 1984 // NIP-56
+	EventKindZapRequest              EventKind = 9734 // NIP-57
+	EventKindZap                     EventKind = 9735 // NIP-57
 )
 
 // Tag is a tag of an event.
