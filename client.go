@@ -142,6 +142,11 @@ func (c *Client) Subscribe(ctx context.Context, filters []Filter) (*Subscription
 	}, nil
 }
 
+// Notice returns a channel that receives notice messages from the relay server.
+func (c *Client) Notice() <-chan string {
+	return c.noticeChan
+}
+
 // Close closes the client connection.
 func (c *Client) Close() error {
 	c.closeOnce.Do(func() {
