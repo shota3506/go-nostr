@@ -58,3 +58,8 @@ func (s *Subscription) Receive(ctx context.Context, f func(context.Context, *Eve
 
 	return nil
 }
+
+// EOSE returns a channel that recieves a value at the end of stored events.
+func (s *Subscription) EOSE() <-chan struct{} {
+	return s.eoseChan
+}
