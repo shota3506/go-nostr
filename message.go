@@ -63,7 +63,7 @@ type CloseMessage struct {
 }
 
 func (m *CloseMessage) MarshalJSON() ([]byte, error) {
-	b, err := json.Marshal([]any{"CLOSE", m.SubscriptionID})
+	b, err := json.Marshal([]any{MessageTypeClose, m.SubscriptionID})
 	if err != nil {
 		return nil, err
 	}
