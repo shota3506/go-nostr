@@ -3,6 +3,7 @@
 go-nostr is a package that provides a simple interface to access nostr relay servers.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/shota3506/go-nostr.svg)](https://pkg.go.dev/github.com/shota3506/go-nostr)
+![CI](https://github.com/shota3506/go-nostr/actions/workflows/ci.yml/badge.svg)
 
 ## Installation
 
