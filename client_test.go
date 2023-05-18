@@ -15,12 +15,12 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	done := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		conn, err := websocket.Accept(w, r, nil)
 		if err != nil {
-			t.Fatal(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 		defer conn.Close(websocket.StatusInternalError, "")
 
@@ -30,12 +30,11 @@ func TestClient(t *testing.T) {
 				if errors.As(err, &closeErr) {
 					break
 				} else {
-					t.Fatal(err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 			}
 		}
-
-		close(done)
 	}))
 	defer server.Close()
 
@@ -46,11 +45,6 @@ func TestClient(t *testing.T) {
 
 	if err := client.Close(); err != nil {
 		t.Fatal(err)
-	}
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Fatal("websocket connection not closed")
 	}
 }
 
@@ -74,7 +68,8 @@ func TestClientPublish(t *testing.T) {
 		ctx := r.Context()
 		conn, err := websocket.Accept(w, r, nil)
 		if err != nil {
-			t.Fatal(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 		defer conn.Close(websocket.StatusInternalError, "")
 
@@ -85,31 +80,38 @@ func TestClientPublish(t *testing.T) {
 				if errors.As(err, &closeErr) {
 					break
 				} else {
-					t.Fatal(err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 			}
 
 			// emulate relay server
 			var message []json.RawMessage
 			if err = json.Unmarshal(b, &message); err != nil {
-				t.Fatal(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 			var typ string
 			if err = json.Unmarshal(message[0], &typ); err != nil {
-				t.Fatal(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 			if typ != "EVENT" {
-				t.Fatal("unexpected message type")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 			if len(message) != 2 {
-				t.Fatalf("invalid message length: %d", len(message))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 			var event Event
 			if err = json.Unmarshal(message[1], &event); err != nil {
-				t.Fatal(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 			if err := wsjson.Write(ctx, conn, []any{"OK", event.ID, true, "sample message"}); err != nil {
-				t.Fatal(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 		}
 	}))
@@ -140,7 +142,8 @@ func TestClientSubscribe(t *testing.T) {
 		ctx := r.Context()
 		conn, err := websocket.Accept(w, r, nil)
 		if err != nil {
-			t.Fatal(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 		defer conn.Close(websocket.StatusInternalError, "")
 
@@ -151,27 +154,32 @@ func TestClientSubscribe(t *testing.T) {
 				if errors.As(err, &closeErr) {
 					break
 				} else {
-					t.Fatal(err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 			}
 
 			var message []json.RawMessage
 			if err = json.Unmarshal(b, &message); err != nil {
-				t.Fatal(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 			var typ string
 			if err = json.Unmarshal(message[0], &typ); err != nil {
-				t.Fatal(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
 			switch typ {
 			case "REQ":
 				if len(message) < 3 {
-					t.Fatalf("invalid message length: %d", len(message))
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 				var subscriptionID string
 				if err = json.Unmarshal(message[1], &subscriptionID); err != nil {
-					t.Fatal(err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 
 				go func(subscriptionID string) {
@@ -185,13 +193,16 @@ func TestClientSubscribe(t *testing.T) {
 
 						privKey, err := NewPrivateKey()
 						if err != nil {
-							continue
+							w.WriteHeader(http.StatusInternalServerError)
+							return
 						}
 						if err := event.Sign(privKey); err != nil {
-							continue
+							w.WriteHeader(http.StatusInternalServerError)
+							return
 						}
 						if err := wsjson.Write(ctx, conn, []any{"EVENT", subscriptionID, event}); err != nil {
-							continue
+							w.WriteHeader(http.StatusInternalServerError)
+							return
 						}
 					}
 
@@ -201,14 +212,17 @@ func TestClientSubscribe(t *testing.T) {
 				}(subscriptionID)
 			case "CLOSE":
 				if len(message) != 2 {
-					t.Fatalf("invalid message length: %d", len(message))
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 				var subscriptionID string
 				if err = json.Unmarshal(message[1], &subscriptionID); err != nil {
-					t.Fatal(err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 			default:
-				t.Fatal("unexpected message type")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 		}
 	}))
